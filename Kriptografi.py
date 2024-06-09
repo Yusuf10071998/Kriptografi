@@ -313,43 +313,49 @@ def InvQISTransformLevel(inv_result, Key, bit_precision):
       inv_result = InvQISTransform(list_result, bit_precision)
   return inv_result
 
+def permutation_matrix(n):
+    P = np.eye(n) 
+    np.random.shuffle(P)
+    return P
+
 def enkripsi(PlainText, Key, bit_precision):    
     start_time = time.time()
     SignalOri = np.array([ord(char) for char in PlainText])
-    Signal = SignalOri % 8
+    Signal = SignalOri % 16
+    k = (SignalOri-Signal)//16
     list_result = QISTransformLevel(Signal, Key, bit_precision)
     arr_result = np.concatenate(list_result).ravel()
+    A = permutation_matrix(len(Signal))
+    Key3 = np.dot(A, k)
+    Key3 = Key3.astype(int)
+    if len(Key3) < len(arr_result):
+        Key3 = np.append(Key3, np.ones(len(arr_result) - len(Key3), dtype=int))
     Key2 = np.where(arr_result < 0, 1, 0)
-    X = abs(arr_result) + 32
+    X = (abs(arr_result) + 32)*Key3
     ChiperText = ''.join(chr(x) for x in X)
     te = round(time.time() - start_time, 2)
-    
-    return ChiperText, Key2, te
+    print(len(SignalOri))
 
-def deskripsi(ChiperText, Key2, Key, bit_precision, SignalOri):
+    return ChiperText, Key3, Key2, te
+
+
+
+def deskripsi(ChiperText, A, Key3, Key2, Key, bit_precision):
     start_time = time.time()
-    signalChip = np.array([ord(char) for char in ChiperText]) - 32
+    signalChip = (np.array([ord(char) for char in ChiperText])//Key3)-32
     signalChip = np.where(Key2 == 1, -signalChip, signalChip)
-    invChipper = InvQISTransformLevel(signalChip, Key, bit_precision) + (SignalOri // 8) * 8
-    invChipperText = ''.join([chr(x) for x in invChipper])
+    invChipper = InvQISTransformLevel(signalChip, Key, bit_precision)
+    Key3 = Key3[Key3 != 1]
+    A_inv = np.linalg.inv(A)
+    Key3 = np.dot(A_inv, Key3)
+    Key3 = Key3.astype(int)
+    inverschip = invChipper+(Key3*16)
+    invChipperText = ''.join([chr(x) for x in inverschip])
     td = round(time.time() - start_time, 2)
-    
+
     return invChipperText, td
 
-# PlainText = input("Input Plaintext: ")
-# SignalOri = np.array([ord(char) for char in PlainText])
-# key_input = input("Input Kunci Enkripsi (pisahkan dengan koma): ")
-# Key = [int(k) for k in key_input.split(',')]
 
-# # Bit precision dan depth
-# bit_precision = 4  # 6 bit precision needs 64G
-# bit_precision += 2  # Add two more bit to operate with negative numbers
-
-# # Enkripsi
-# ChiperText, Key2, te = enkripsi(SignalOri, Key, bit_precision)
-# print("PlainText : ", PlainText)
-# print("ChipperText : ", ChiperText)
-# print("Waktu Enkripsi : ", te)
 
 # # Deskripsi
 # invChipperText, td = deskripsi(ChiperText, Key2, Key, bit_precision, SignalOri)
@@ -359,35 +365,21 @@ def deskripsi(ChiperText, Key2, Key, bit_precision, SignalOri):
 def corelation_value(PlainText, ChiperText):
     plain_num = np.array([ord(char) for char in PlainText])
     chip_num = np.array([ord(char) for char in ChiperText])
-    n = plain_num.size
-    m = chip_num.size
-    A = 0
-    for i in range(min(n, m)):
-        A += plain_num[i] * chip_num[i]
-    A = n * A
-    PlainText = 0
-    ChiperText = 0
-    for i in range(min(n, m)):
-        PlainText += plain_num[i]
-        ChiperText += chip_num[i]
-    B = PlainText * ChiperText
-    plainS = 0
-    chipS = 0
-    for i in range(min(n, m)):
-        plainS += plain_num[i] ** 2
-        chipS += chip_num[i] ** 2
-    nilai_korelasi = (A - B) / (np.sqrt((n * plainS - PlainText ** 2) * (n * chipS - ChiperText ** 2)))
-    nilai_korelasi = round(abs(nilai_korelasi),5)
-    return nilai_korelasi
+    min_length = min(len(plain_num), len(chip_num))
+    plain_num = plain_num[:min_length]
+    chip_num = chip_num[:min_length]
+    correlation_matrix = np.corrcoef(plain_num, chip_num)
+    correlation_value = round(correlation_matrix[0, 1],5)
+    return correlation_value
 
 def count_characters(char, text):
     return text.count(char)
 
 def encryption_quality(PlainText, ChiperText):
     temp = 0
-    n = 256 - 32
+    n = 65536 - 32
     
-    for i in range(32, 256):
+    for i in range(32, 65536):
         temp += abs(count_characters(chr(i), PlainText) - count_characters(chr(i), ChiperText))
     
     result = temp / n
@@ -399,6 +391,6 @@ def encryption_quality(PlainText, ChiperText):
     else:
         max_quality_enk = round(2 * n2 / n,5)
     
-    persent_quality_enk = round((result / max_quality_enk) * 100,3)
+    persent_quality_enk = round((result / max_quality_enk) * 100,2)
     
     return max_quality_enk, persent_quality_enk

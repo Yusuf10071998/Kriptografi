@@ -34,7 +34,7 @@ class App(customtkinter.CTk):
         self.sidebar_button_3.grid(row=3, column=0, padx=20, pady=10)
         self.sidebar_button_4 = customtkinter.CTkButton(self.sidebar_frame, text="Reset", command=self.sidebar_button_4_event)
         self.sidebar_button_4.grid(row=4, column=0, padx=20, pady=10)
-        self.sidebar_button_5 = customtkinter.CTkButton(self.sidebar_frame, text="Save", command=self.sidebar_button_event)
+        self.sidebar_button_5 = customtkinter.CTkButton(self.sidebar_frame, text="Save", command=self.sidebar_button_5_event)
         self.sidebar_button_5.grid(row=5, column=0, padx=20, pady=10)
         self.appearance_mode_label = customtkinter.CTkLabel(self.sidebar_frame, text="Appearance Mode:", anchor="w")
         self.appearance_mode_label.grid(row=6, column=0, padx=20, pady=(10, 0))
@@ -99,14 +99,18 @@ class App(customtkinter.CTk):
         self.label_char_3.grid(row=6, column=2, padx=20)
         self.entry_3 = customtkinter.CTkEntry(self.end_frame)
         self.entry_3.grid(row=7, column=2, padx=10, sticky="nsew")
+        self.label_char_6 = customtkinter.CTkLabel(self.end_frame, text="Kunci Deskripsi 3", font=customtkinter.CTkFont(size=11, weight="bold"))
+        self.label_char_6.grid(row=8, column=2, padx=20)
+        self.entry_6 = customtkinter.CTkEntry(self.end_frame)
+        self.entry_6.grid(row=9, column=2, padx=10, sticky="nsew")
         self.label_char_4 = customtkinter.CTkLabel(self.end_frame, text="Waktu Deskripsi", font=customtkinter.CTkFont(size=11, weight="bold"))
-        self.label_char_4.grid(row=8, column=2, padx=20)
+        self.label_char_4.grid(row=10, column=2, padx=20)
         self.entry_4 = customtkinter.CTkEntry(self.end_frame)
-        self.entry_4.grid(row=9, column=2, padx=10, sticky="nsew")
+        self.entry_4.grid(row=11, column=2, padx=10, sticky="nsew")
         self.label_char_5 = customtkinter.CTkLabel(self.end_frame, text="Similarity", font=customtkinter.CTkFont(size=11, weight="bold"))
-        self.label_char_5.grid(row=10, column=2, padx=20)
+        self.label_char_5.grid(row=12, column=2, padx=20)
         self.entry_5 = customtkinter.CTkEntry(self.end_frame)
-        self.entry_5.grid(row=11, column=2, padx=10, sticky="nsew")
+        self.entry_5.grid(row=13, column=2, padx=10, sticky="nsew")
 
          # create end frame
         self.ended_frame = customtkinter.CTkFrame(self, width=340, corner_radius=10)
@@ -122,9 +126,6 @@ class App(customtkinter.CTk):
     def change_appearance_mode_event(self, new_appearance_mode: str):
         customtkinter.set_appearance_mode(new_appearance_mode)
 
-    def sidebar_button_event(self):
-        print("sidebar_button click")
-
     def sidebar_button_1_event(self):
         file_path = tkinter.filedialog.askopenfilename()
         if file_path:
@@ -134,6 +135,48 @@ class App(customtkinter.CTk):
                 self.textbox_plain.insert("1.0", data)
                 self.entry1.delete(0, "end")
                 self.entry1.insert(0, str(len(data)))
+
+    def sidebar_button_2_event(self):
+        if not self.textbox_plain.get("1.0", "end-1c").strip() or not self.entry2.get().strip():
+            tkinter.messagebox.showwarning("Peringatan", "Plain Text dan Kunci Enkripsi tidak boleh kosong")
+            return
+        bit_precision = 4 
+        bit_precision += 2
+        PlainText = self.textbox_plain.get("1.0", "end-1c")
+        key_input = self.entry2.get()
+        Key = [int(k) for k in key_input.split(',')]
+        ChiperText, Key3, Key2, te = enkripsi(PlainText, Key, bit_precision)
+        self.textbox_chip.delete("1.0", "end")
+        self.textbox_chip.insert("1.0", ChiperText)
+        self.entry3.delete(0, "end")
+        self.entry3.insert(0, te)
+        self.entry_1.delete(0, "end")
+        self.entry_1.insert(0, str(len(ChiperText)))
+        self.entry_2.delete(0, "end")
+        self.entry_2.insert(0, ', '.join(map(str, Key)))
+        self.entry_3.delete(0, "end")
+        self.entry_3.insert(0, ', '.join(map(str, Key2)))
+        self.entry_6.delete(0, "end")
+        self.entry_6.insert(0, ', '.join(map(str, Key3)))
+        correlation_value = corelation_value(PlainText, ChiperText)
+        self.entry4.delete(0, "end")
+        self.entry4.insert(0, correlation_value)
+        max_quality_enk, persent_quality_enk = encryption_quality(PlainText, ChiperText)
+        self.entry5.delete(0, "end")
+        self.entry5.insert(0, max_quality_enk)
+        self.entry6.delete(0, "end")
+        self.entry6.insert(0, persent_quality_enk)
+
+    def sidebar_button_3_event(self):
+        bit_precision = 4
+        bit_precision += 2
+        SignalOri = np.array([ord(char) for char in self.textbox_plain.get("1.0", "end-1c")]) 
+        ChiperText = self.textbox_chip.get("1.0", "end-1c")
+        Key2 = [int(k) for k in self.entry_3.get().split(',')]
+        Key = [int(k) for k in self.entry_2.get().split(',')]
+        invChipperText, td = deskripsi(ChiperText, Key2, Key, bit_precision, SignalOri)
+        self.textbox_invchip.insert("1.0",  invChipperText)
+        self.entry_4.insert(0, td)
 
     def sidebar_button_4_event(self):
         self.textbox_plain.delete("1.0", "end")
@@ -150,44 +193,16 @@ class App(customtkinter.CTk):
         self.entry_4.delete(0, "end")
         self.entry_5.delete(0, "end")
 
-    def sidebar_button_2_event(self):
-        bit_precision = 4  # 6 bit precision needs 64G
-        bit_precision += 2
-        Plain_text = self.textbox_plain.get("1.0", "end-1c")
-        key_input = self.entry2.get()
-        Key = [int(k) for k in key_input.split(',')]
-        chiper_text, key2, te = enkripsi(Plain_text, Key, bit_precision)
-        self.textbox_chip.delete("1.0", "end")
-        self.textbox_chip.insert("1.0", chiper_text)
-        self.entry3.delete(0, "end")
-        self.entry3.insert(0, te)
-        self.entry_1.delete(0, "end")
-        self.entry_1.insert(0, str(len(chiper_text)))
-        self.entry_2.delete(0, "end")
-        self.entry_2.insert(0, ', '.join(map(str, Key)))
-        self.entry_3.delete(0, "end")
-        self.entry_3.insert(0, ', '.join(map(str, key2)))
-        nilai_korelasi = corelation_value(Plain_text, chiper_text)
-        self.entry4.delete(0, "end")
-        self.entry4.insert(0, nilai_korelasi)
-        max_quality_enk, persent_quality_enk = encryption_quality(Plain_text, chiper_text)
-        self.entry5.delete(0, "end")
-        self.entry5.insert(0, max_quality_enk)
-        self.entry6.delete(0, "end")
-        self.entry6.insert(0, persent_quality_enk)
+    def sidebar_button_5_event(self):
+        file_path = tkinter.filedialog.asksaveasfilename(defaultextension=".txt", filetypes=[("Text files", "*.txt")])
+        if file_path:
+            with open(file_path, 'w') as file:
+                file.write("Plain Text:\n" + self.textbox_plain.get("1.0", "end-1c") + "\n")
+                file.write("Chiper Text:\n" + self.textbox_chip.get("1.0", "end-1c") + "\n")
+                file.write("Kunci Enkripsi:\n" + self.entry2.get() + "\n")
+                file.write("Kunci Deskripsi 1:\n" + self.entry_2.get() + "\n")
+                file.write("Kunci Deskripsi 2:\n" + self.entry_3.get() + "\n")
 
-    def sidebar_button_3_event(self):
-        bit_precision = 4
-        bit_precision += 2
-        ChiperText = self.textbox_chip.get("1.0", "end-1c")
-        key_input = self.entry_2.get()
-        Key = [int(k) for k in key_input.split(',')]
-        key2_input = self.entry_3.get()
-        Key2 = [int(k) for k in key2_input.split(',')]
-        SignalOri = np.array([ord(char) for char in self.textbox_plain.get("1.0", "end-1c")]) 
-        invChipperText, td = deskripsi(ChiperText, Key2, Key, bit_precision, SignalOri)
-        self.textbox_invchip.insert("1.0", invChipperText)
-        self.entry_4.insert(0, td)
 
 if __name__ == "__main__":
     app = App()
