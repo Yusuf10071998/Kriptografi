@@ -2,6 +2,7 @@ import tkinter
 import tkinter.messagebox
 import customtkinter
 import numpy as np
+from customtkinter import filedialog
 from Kriptografi import enkripsi, deskripsi, corelation_value, encryption_quality
 
 customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
@@ -10,6 +11,10 @@ customtkinter.set_default_color_theme("blue")  # Themes: "blue" (standard), "gre
 class App(customtkinter.CTk):
     def __init__(self):
         super().__init__()
+        self.A_matrix = 0
+        self.Key_ = 0
+        self.Key2_ = 0
+        self.Key3_ = 0
 
         # configure window
         self.title("A Criptography Algorithm Using Quantum Wavelet S-Transform")
@@ -107,21 +112,6 @@ class App(customtkinter.CTk):
         self.label_char_4.grid(row=10, column=2, padx=20)
         self.entry_4 = customtkinter.CTkEntry(self.end_frame)
         self.entry_4.grid(row=11, column=2, padx=10, sticky="nsew")
-        self.label_char_5 = customtkinter.CTkLabel(self.end_frame, text="Similarity", font=customtkinter.CTkFont(size=11, weight="bold"))
-        self.label_char_5.grid(row=12, column=2, padx=20)
-        self.entry_5 = customtkinter.CTkEntry(self.end_frame)
-        self.entry_5.grid(row=13, column=2, padx=10, sticky="nsew")
-
-         # create end frame
-        self.ended_frame = customtkinter.CTkFrame(self, width=340, corner_radius=10)
-        self.ended_frame.grid(row=0, column=3, rowspan=5, padx=(5,10), sticky="nsew")
-        self.ended_frame.grid_rowconfigure(0, weight=0)
-        self.ended_frame.grid_columnconfigure(2, weight=1)
-        self.label_invchip = customtkinter.CTkLabel(self.ended_frame, text="Plain Text", font=customtkinter.CTkFont(size=13, weight="bold"))
-        self.label_invchip.grid(row=0, column=3, padx=20, pady=(10, 10))
-        self.textbox_invchip = customtkinter.CTkTextbox(self.ended_frame)
-        self.textbox_invchip.grid(row=1, column=3, padx=(10, 10), pady=(0, 0), sticky="nsew")
-        self.textbox_invchip.insert("0.0", "")
 
     def change_appearance_mode_event(self, new_appearance_mode: str):
         customtkinter.set_appearance_mode(new_appearance_mode)
@@ -145,9 +135,14 @@ class App(customtkinter.CTk):
         PlainText = self.textbox_plain.get("1.0", "end-1c")
         key_input = self.entry2.get()
         Key = [int(k) for k in key_input.split(',')]
-        ChiperText, Key3, Key2, te = enkripsi(PlainText, Key, bit_precision)
+        ChiperText, A, Key3, Key2, te = enkripsi(PlainText, Key, bit_precision)
+        self.A_matrix = A
+        self.Key3_ = Key3
+        self.Key2_ = Key2
+        self.Key_ = Key
         self.textbox_chip.delete("1.0", "end")
         self.textbox_chip.insert("1.0", ChiperText)
+        self.textbox_plain.delete("1.0", "end-1c")
         self.entry3.delete(0, "end")
         self.entry3.insert(0, te)
         self.entry_1.delete(0, "end")
@@ -170,12 +165,10 @@ class App(customtkinter.CTk):
     def sidebar_button_3_event(self):
         bit_precision = 4
         bit_precision += 2
-        SignalOri = np.array([ord(char) for char in self.textbox_plain.get("1.0", "end-1c")]) 
         ChiperText = self.textbox_chip.get("1.0", "end-1c")
-        Key2 = [int(k) for k in self.entry_3.get().split(',')]
-        Key = [int(k) for k in self.entry_2.get().split(',')]
-        invChipperText, td = deskripsi(ChiperText, Key2, Key, bit_precision, SignalOri)
-        self.textbox_invchip.insert("1.0",  invChipperText)
+        A = self.A_matrix
+        invChipperText, td = deskripsi(ChiperText, A, self.Key3_, self.Key2_, self.Key_, bit_precision)
+        self.textbox_plain.insert("1.0",  invChipperText)
         self.entry_4.insert(0, td)
 
     def sidebar_button_4_event(self):
@@ -191,18 +184,18 @@ class App(customtkinter.CTk):
         self.entry_2.delete(0, "end")
         self.entry_3.delete(0, "end")
         self.entry_4.delete(0, "end")
-        self.entry_5.delete(0, "end")
-
+        self.entry_6.delete(0, "end")
+    
     def sidebar_button_5_event(self):
         file_path = tkinter.filedialog.asksaveasfilename(defaultextension=".txt", filetypes=[("Text files", "*.txt")])
         if file_path:
-            with open(file_path, 'w') as file:
+            with open(file_path, 'w', encoding="utf-8") as file:
                 file.write("Plain Text:\n" + self.textbox_plain.get("1.0", "end-1c") + "\n")
                 file.write("Chiper Text:\n" + self.textbox_chip.get("1.0", "end-1c") + "\n")
                 file.write("Kunci Enkripsi:\n" + self.entry2.get() + "\n")
                 file.write("Kunci Deskripsi 1:\n" + self.entry_2.get() + "\n")
                 file.write("Kunci Deskripsi 2:\n" + self.entry_3.get() + "\n")
-
+                file.write("Kunci Deskripsi 3:\n" + self.entry_6.get() + "\n")
 
 if __name__ == "__main__":
     app = App()
